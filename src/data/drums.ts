@@ -4,12 +4,14 @@ import type {
   DrumSettings,
   LoopBars,
   Patterns,
+  StepVelocity,
 } from "../types";
 
 export const STEPS_PER_BAR = 8;
 export const DEFAULT_BPM = 116;
 export const MIN_LOOP_BARS = 1;
 export const MAX_LOOP_BARS = 16;
+export const DEFAULT_STEP_VELOCITY = 0.72;
 
 export const DRUMS: DrumDefinition[] = [
   {
@@ -106,7 +108,7 @@ export function resizePatterns(
   previous: Patterns,
   loopBars: LoopBars,
 ): Patterns {
-  const nextLength = loopBars * STEPS_PER_BAR;
+  const nextLength = totalSteps(loopBars);
 
   return DRUMS.reduce<Patterns>((patterns, drum) => {
     const current = previous[drum.id] ?? [];
@@ -132,7 +134,7 @@ export function createEmptyPatterns(loopBars: LoopBars): Patterns {
   return DRUMS.reduce<Patterns>((patterns, drum) => {
     patterns[drum.id] = Array.from(
       { length: totalSteps(loopBars) },
-      () => false,
+      () => 0,
     );
     return patterns;
   }, {} as Patterns);
@@ -142,7 +144,7 @@ export function createRandomPatterns(loopBars: LoopBars): Patterns {
   return DRUMS.reduce<Patterns>((patterns, drum) => {
     patterns[drum.id] = Array.from(
       { length: totalSteps(loopBars) },
-      (_, index) => shouldEnableRandomStep(drum.id, index),
+      (_, index) => createRandomStepVelocity(drum.id, index),
     );
     return patterns;
   }, {} as Patterns);
@@ -150,6 +152,14 @@ export function createRandomPatterns(loopBars: LoopBars): Patterns {
 
 export function clampUnit(value: number) {
   return Math.min(1, Math.max(0, value));
+}
+
+export function clampVelocity(value: number): StepVelocity {
+  return clampUnit(value);
+}
+
+export function isStepActive(value: StepVelocity) {
+  return value > 0;
 }
 
 export function drumById(id: DrumId) {
@@ -161,7 +171,10 @@ function repeatBarPattern(barPattern: number[], loopBars: LoopBars) {
 
   return Array.from(
     { length: safeLoopBars * STEPS_PER_BAR },
-    (_, index) => Boolean(barPattern[index % barPattern.length]),
+    (_, index) =>
+      barPattern[index % barPattern.length]
+        ? getDefaultVelocityForPulse(index)
+        : 0,
   );
 }
 
@@ -205,4 +218,40 @@ function shouldEnableRandomStep(drumId: DrumId, step: number) {
 
 function roll(probability: number) {
   return Math.random() < probability;
+}
+
+function getDefaultVelocityForPulse(step: number) {
+  const pulse = step % STEPS_PER_BAR;
+  return pulse === 0 || pulse === 4 ? 0.88 : DEFAULT_STEP_VELOCITY;
+}
+
+function createRandomStepVelocity(drumId: DrumId, step: number) {
+  if (!shouldEnableRandomStep(drumId, step)) {
+    return 0;
+  }
+
+  const pulse = step % STEPS_PER_BAR;
+
+  switch (drumId) {
+    case "kick":
+      return pulse === 0 || pulse === 4
+        ? randomVelocity(0.82, 1)
+        : randomVelocity(0.46, 0.82);
+    case "snare":
+      return pulse === 2 || pulse === 6
+        ? randomVelocity(0.68, 0.94)
+        : randomVelocity(0.32, 0.7);
+    case "hihat":
+      return pulse === 0 || pulse === 4
+        ? randomVelocity(0.58, 0.84)
+        : randomVelocity(0.24, 0.68);
+    case "tom":
+      return pulse === 3 || pulse === 6
+        ? randomVelocity(0.52, 0.82)
+        : randomVelocity(0.28, 0.62);
+  }
+}
+
+function randomVelocity(min: number, max: number) {
+  return clampVelocity(min + Math.random() * (max - min));
 }

@@ -7,10 +7,12 @@ import {
   DRUMS,
   clampUnit,
   clampLoopBars,
+  clampVelocity,
   createEmptyPatterns,
   createInitialPatterns,
   createRandomPatterns,
   createInitialSettings,
+  DEFAULT_STEP_VELOCITY,
   resizePatterns,
 } from "./data/drums";
 import { useDrumMachine } from "./hooks/useDrumMachine";
@@ -37,11 +39,15 @@ export default function App() {
     setPatterns((previous) => resizePatterns(previous, safeLoopBars));
   }
 
-  function handleSetStep(drumId: DrumId, step: number, nextValue: boolean) {
+  function handleSetStepVelocity(
+    drumId: DrumId,
+    step: number,
+    nextVelocity: number,
+  ) {
     setPatterns((previous) => ({
       ...previous,
       [drumId]: previous[drumId].map((value, index) =>
-        index === step ? nextValue : value,
+        index === step ? clampVelocity(nextVelocity) : value,
       ),
     }));
   }
@@ -50,7 +56,7 @@ export default function App() {
     setPatterns((previous) => ({
       ...previous,
       [drumId]: previous[drumId].map((value, index) =>
-        index === step ? !value : value,
+        index === step ? (value > 0 ? 0 : DEFAULT_STEP_VELOCITY) : value,
       ),
     }));
   }
@@ -94,7 +100,7 @@ export default function App() {
         loopBars={loopBars}
         onClearPatterns={handleClearPatterns}
         onRandomizePatterns={handleRandomizePatterns}
-        onSetStep={handleSetStep}
+        onSetStepVelocity={handleSetStepVelocity}
         onToggleStep={handleToggleStep}
         patterns={patterns}
       />

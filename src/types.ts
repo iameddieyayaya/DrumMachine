@@ -1,6 +1,7 @@
 export type DrumId = "kick" | "snare" | "hihat" | "tom";
 
 export type LoopBars = number;
+export type StepVelocity = number;
 
 export type DrumParams = Record<string, number>;
 
@@ -21,6 +22,6 @@ export interface DrumDefinition {
   barPattern: number[];
 }
 
-export type Patterns = Record<DrumId, boolean[]>;
+export type Patterns = Record<DrumId, StepVelocity[]>;
 
 export type DrumSettings = Record<DrumId, DrumParams>;

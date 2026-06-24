@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
-import { STEPS_PER_BAR } from "../data/drums";
+import {
+  clampVelocity,
+  DEFAULT_STEP_VELOCITY,
+  isStepActive,
+  STEPS_PER_BAR,
+} from "../data/drums";
 import type { DrumDefinition, LoopBars, Patterns } from "../types";
 
 interface StepGridProps {
@@ -9,18 +14,25 @@ interface StepGridProps {
   loopBars: LoopBars;
   onClearPatterns: () => void;
   onRandomizePatterns: () => void;
-  onSetStep: (
+  onSetStepVelocity: (
     drumId: DrumDefinition["id"],
     step: number,
-    nextValue: boolean,
+    nextValue: number,
   ) => void;
   patterns: Patterns;
   onToggleStep: (drumId: DrumDefinition["id"], step: number) => void;
 }
 
 interface DragState {
-  paintValue: boolean;
+  mode: "pending" | "paint" | "velocity";
   pointerId: number;
+  paintVelocity: number;
+  startDrumId: DrumDefinition["id"];
+  startStep: number;
+  startVelocity: number;
+  startX: number;
+  startY: number;
+  startedActive: boolean;
   touchedSteps: Set<string>;
 }
 
@@ -30,7 +42,7 @@ export function StepGrid({
   loopBars,
   onClearPatterns,
   onRandomizePatterns,
-  onSetStep,
+  onSetStepVelocity,
   patterns,
   onToggleStep,
 }: StepGridProps) {
@@ -39,24 +51,129 @@ export function StepGrid({
   const dragStateRef = useRef<DragState | null>(null);
 
   useEffect(() => {
-    function clearDragState() {
+    function applyVelocityDrag(dragState: DragState, pointerY: number) {
+      const deltaY = dragState.startY - pointerY;
+      const nextVelocity = clampVelocity(
+        dragState.startVelocity + deltaY * 0.0065,
+      );
+
+      onSetStepVelocity(
+        dragState.startDrumId,
+        dragState.startStep,
+        nextVelocity,
+      );
+    }
+
+    function applyPaintAtPoint(
+      dragState: DragState,
+      clientX: number,
+      clientY: number,
+    ) {
+      const button = document
+        .elementFromPoint(clientX, clientY)
+        ?.closest<HTMLButtonElement>("[data-step-button]");
+
+      if (!button) {
+        return;
+      }
+
+      const drumId = button.dataset.drumId as DrumDefinition["id"] | undefined;
+      const stepValue = button.dataset.step;
+      if (!drumId || !stepValue) {
+        return;
+      }
+
+      const step = Number(stepValue);
+      if (Number.isNaN(step)) {
+        return;
+      }
+
+      const stepKey = createStepKey(drumId, step);
+      if (dragState.touchedSteps.has(stepKey)) {
+        return;
+      }
+
+      dragState.touchedSteps.add(stepKey);
+      onSetStepVelocity(drumId, step, dragState.paintVelocity);
+    }
+
+    function clearDragState(event?: globalThis.PointerEvent) {
+      const dragState = dragStateRef.current;
+      if (!dragState) {
+        return;
+      }
+
+      if (event && dragState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      if (dragState.mode === "pending") {
+        onSetStepVelocity(
+          dragState.startDrumId,
+          dragState.startStep,
+          dragState.startedActive ? 0 : dragState.paintVelocity,
+        );
+      }
+
       dragStateRef.current = null;
     }
 
+    function handlePointerMove(event: globalThis.PointerEvent) {
+      const dragState = dragStateRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      const deltaX = event.clientX - dragState.startX;
+      const deltaY = event.clientY - dragState.startY;
+
+      if (dragState.mode === "pending") {
+        if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+          dragState.mode = "velocity";
+          applyVelocityDrag(dragState, event.clientY);
+          return;
+        }
+
+        if (Math.abs(deltaX) > 10) {
+          dragState.mode = "paint";
+          dragState.touchedSteps.add(
+            createStepKey(dragState.startDrumId, dragState.startStep),
+          );
+          onSetStepVelocity(
+            dragState.startDrumId,
+            dragState.startStep,
+            dragState.paintVelocity,
+          );
+          applyPaintAtPoint(dragState, event.clientX, event.clientY);
+        }
+
+        return;
+      }
+
+      if (dragState.mode === "velocity") {
+        applyVelocityDrag(dragState, event.clientY);
+        return;
+      }
+
+      applyPaintAtPoint(dragState, event.clientX, event.clientY);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", clearDragState);
     window.addEventListener("pointercancel", clearDragState);
 
     return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", clearDragState);
       window.removeEventListener("pointercancel", clearDragState);
     };
-  }, []);
+  }, [onSetStepVelocity]);
 
   function handleStepPointerDown(
     event: PointerEvent<HTMLButtonElement>,
     drumId: DrumDefinition["id"],
     step: number,
-    isActive: boolean,
+    velocity: number,
   ) {
     if (event.pointerType === "mouse" && event.button !== 0) {
       return;
@@ -64,33 +181,20 @@ export function StepGrid({
 
     event.preventDefault();
 
-    const nextValue = !isActive;
+    const startedActive = isStepActive(velocity);
+    const baseVelocity = startedActive ? velocity : DEFAULT_STEP_VELOCITY;
     dragStateRef.current = {
-      paintValue: nextValue,
+      mode: "pending",
       pointerId: event.pointerId,
-      touchedSteps: new Set([createStepKey(drumId, step)]),
+      paintVelocity: baseVelocity,
+      startDrumId: drumId,
+      startStep: step,
+      startVelocity: baseVelocity,
+      startX: event.clientX,
+      startY: event.clientY,
+      startedActive,
+      touchedSteps: new Set(),
     };
-
-    onSetStep(drumId, step, nextValue);
-  }
-
-  function handleStepPointerEnter(
-    event: PointerEvent<HTMLButtonElement>,
-    drumId: DrumDefinition["id"],
-    step: number,
-  ) {
-    const dragState = dragStateRef.current;
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const stepKey = createStepKey(drumId, step);
-    if (dragState.touchedSteps.has(stepKey)) {
-      return;
-    }
-
-    dragState.touchedSteps.add(stepKey);
-    onSetStep(drumId, step, dragState.paintValue);
   }
 
   function handleStepKeyDown(
@@ -133,7 +237,10 @@ export function StepGrid({
       </div>
 
       <div className="sequencer__legend">
-        <p>Each bar holds 8 pulses. Hold and drag to paint or erase steps.</p>
+        <p>
+          Click to toggle. Drag across to paint matching velocity, or drag up and
+          down on a step to shape its volume.
+        </p>
       </div>
 
       <div className="sequencer__scroll">
@@ -180,7 +287,8 @@ export function StepGrid({
               </div>
 
               {steps.map((step) => {
-                const isActive = patterns[drum.id][step];
+                const velocity = patterns[drum.id][step];
+                const isActive = isStepActive(velocity);
                 const isCurrent = currentStep === step;
                 const isBarStart = step % STEPS_PER_BAR === 0;
 
@@ -197,6 +305,8 @@ export function StepGrid({
                       .filter(Boolean)
                       .join(" ")}
                     key={step}
+                    data-drum-id={drum.id}
+                    data-step={step}
                     onClick={(event) => {
                       event.preventDefault();
                     }}
@@ -204,11 +314,9 @@ export function StepGrid({
                       handleStepKeyDown(event, drum.id, step)
                     }
                     onPointerDown={(event) =>
-                      handleStepPointerDown(event, drum.id, step, isActive)
+                      handleStepPointerDown(event, drum.id, step, velocity)
                     }
-                    onPointerEnter={(event) =>
-                      handleStepPointerEnter(event, drum.id, step)
-                    }
+                    style={{ "--step-velocity": velocity } as CSSProperties}
                     type="button"
                   >
                     <span />

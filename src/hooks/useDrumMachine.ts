@@ -1,5 +1,5 @@
 import { startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
-import { totalSteps } from "../data/drums";
+import { isStepActive, totalSteps } from "../data/drums";
 import { ensureAudioContext, triggerDrum } from "../lib/audio";
 import type { DrumId, DrumSettings, LoopBars, Patterns } from "../types";
 
@@ -137,14 +137,16 @@ export function useDrumMachine({
 
       for (const [drumId, track] of Object.entries(patternsRef.current) as [
         DrumId,
-        boolean[],
+        number[],
       ][]) {
-        if (track[scheduledStep]) {
+        const velocity = track[scheduledStep];
+        if (isStepActive(velocity)) {
           triggerDrum(
             context,
             drumId,
             settingsRef.current[drumId],
             nextNoteTimeRef.current,
+            velocity,
           );
         }
       }

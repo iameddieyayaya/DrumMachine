@@ -21,24 +21,30 @@ export function triggerDrum(
   drumId: DrumId,
   params: DrumParams,
   time: number,
+  velocity: number,
 ) {
   switch (drumId) {
     case "kick":
-      synthKick(context, params, time);
+      synthKick(context, params, time, velocity);
       break;
     case "snare":
-      synthSnare(context, params, time);
+      synthSnare(context, params, time, velocity);
       break;
     case "hihat":
-      synthHiHat(context, params, time);
+      synthHiHat(context, params, time, velocity);
       break;
     case "tom":
-      synthTom(context, params, time);
+      synthTom(context, params, time, velocity);
       break;
   }
 }
 
-function synthKick(context: AudioContext, params: DrumParams, time: number) {
+function synthKick(
+  context: AudioContext,
+  params: DrumParams,
+  time: number,
+  velocity: number,
+) {
   const oscillator = context.createOscillator();
   const amp = context.createGain();
   const tone = context.createBiquadFilter();
@@ -59,8 +65,9 @@ function synthKick(context: AudioContext, params: DrumParams, time: number) {
   shaper.curve = makeDriveCurve(50 + params.drive * 220);
   shaper.oversample = "4x";
 
+  const level = scaleVelocity(velocity);
   amp.gain.setValueAtTime(0.001, time);
-  amp.gain.exponentialRampToValueAtTime(1, time + 0.005);
+  amp.gain.exponentialRampToValueAtTime(level, time + 0.005);
   amp.gain.exponentialRampToValueAtTime(0.001, time + decay);
 
   oscillator.connect(tone);
@@ -72,7 +79,12 @@ function synthKick(context: AudioContext, params: DrumParams, time: number) {
   oscillator.stop(time + decay + 0.04);
 }
 
-function synthSnare(context: AudioContext, params: DrumParams, time: number) {
+function synthSnare(
+  context: AudioContext,
+  params: DrumParams,
+  time: number,
+  velocity: number,
+) {
   const noiseSource = context.createBufferSource();
   const noiseFilter = context.createBiquadFilter();
   const noiseAmp = context.createGain();
@@ -83,18 +95,22 @@ function synthSnare(context: AudioContext, params: DrumParams, time: number) {
   const decay = 0.08 + params.decay * 0.34;
   const noiseBrightness = 1500 + params.noise * 5200;
   const snapPitch = 160 + params.snap * 120;
+  const level = scaleVelocity(velocity);
 
   noiseSource.buffer = getNoiseBuffer(context);
   noiseFilter.type = "highpass";
   noiseFilter.frequency.value = noiseBrightness;
   noiseAmp.gain.setValueAtTime(0.001, time);
-  noiseAmp.gain.exponentialRampToValueAtTime(0.95, time + 0.002);
+  noiseAmp.gain.exponentialRampToValueAtTime(0.95 * level, time + 0.002);
   noiseAmp.gain.exponentialRampToValueAtTime(0.001, time + decay);
 
   toneOsc.type = "triangle";
   toneOsc.frequency.setValueAtTime(snapPitch, time);
   toneAmp.gain.setValueAtTime(0.001, time);
-  toneAmp.gain.exponentialRampToValueAtTime(0.28 + params.snap * 0.18, time + 0.004);
+  toneAmp.gain.exponentialRampToValueAtTime(
+    (0.28 + params.snap * 0.18) * level,
+    time + 0.004,
+  );
   toneAmp.gain.exponentialRampToValueAtTime(0.001, time + decay * 0.75);
 
   mix.gain.value = 0.88;
@@ -112,7 +128,12 @@ function synthSnare(context: AudioContext, params: DrumParams, time: number) {
   toneOsc.stop(time + decay + 0.04);
 }
 
-function synthHiHat(context: AudioContext, params: DrumParams, time: number) {
+function synthHiHat(
+  context: AudioContext,
+  params: DrumParams,
+  time: number,
+  velocity: number,
+) {
   const frequencies = [1, 1.33, 1.51, 1.88, 2.05, 2.64];
   const bandpass = context.createBiquadFilter();
   const highpass = context.createBiquadFilter();
@@ -132,8 +153,9 @@ function synthHiHat(context: AudioContext, params: DrumParams, time: number) {
   shaper.curve = makeDriveCurve(35 + params.grit * 180);
   shaper.oversample = "2x";
 
+  const level = scaleVelocity(velocity);
   amp.gain.setValueAtTime(0.001, time);
-  amp.gain.exponentialRampToValueAtTime(0.65, time + 0.002);
+  amp.gain.exponentialRampToValueAtTime(0.65 * level, time + 0.002);
   amp.gain.exponentialRampToValueAtTime(0.001, time + decay);
 
   frequencies.forEach((ratio) => {
@@ -151,7 +173,12 @@ function synthHiHat(context: AudioContext, params: DrumParams, time: number) {
   amp.connect(context.destination);
 }
 
-function synthTom(context: AudioContext, params: DrumParams, time: number) {
+function synthTom(
+  context: AudioContext,
+  params: DrumParams,
+  time: number,
+  velocity: number,
+) {
   const oscillator = context.createOscillator();
   const filter = context.createBiquadFilter();
   const amp = context.createGain();
@@ -168,8 +195,9 @@ function synthTom(context: AudioContext, params: DrumParams, time: number) {
   filter.frequency.value = 420 + params.pitch * 1200;
   filter.Q.value = 0.6;
 
+  const level = scaleVelocity(velocity);
   amp.gain.setValueAtTime(0.001, time);
-  amp.gain.exponentialRampToValueAtTime(0.82, time + 0.006);
+  amp.gain.exponentialRampToValueAtTime(0.82 * level, time + 0.006);
   amp.gain.exponentialRampToValueAtTime(0.001, time + decay);
 
   oscillator.connect(filter);
@@ -210,4 +238,8 @@ function makeDriveCurve(amount: number) {
   }
 
   return curve;
+}
+
+function scaleVelocity(velocity: number) {
+  return Math.max(0.08, Math.min(1, velocity));
 }

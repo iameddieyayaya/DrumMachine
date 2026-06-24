@@ -404,6 +404,7 @@ input[type="range"] {
 
 .step-button {
   position: relative;
+  overflow: hidden;
   min-width: 2.65rem;
   min-height: 3rem;
   user-select: none;
@@ -417,6 +418,7 @@ input[type="range"] {
     transform 140ms ease,
     border-color 140ms ease,
     background 140ms ease;
+  --step-velocity: 0;
 }
 
 .step-button:hover {
@@ -424,7 +426,20 @@ input[type="range"] {
   border-color: rgba(255, 255, 255, 0.16);
 }
 
+.step-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--drum-color) 72%, transparent), transparent 78%);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
 .step-button span {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 0.8rem;
   height: 0.8rem;
@@ -433,20 +448,25 @@ input[type="range"] {
   background: rgba(255, 255, 255, 0.08);
   transition:
     transform 140ms ease,
+    opacity 140ms ease,
+    filter 140ms ease,
     background 140ms ease,
     box-shadow 140ms ease;
 }
 
 .step-button.is-active {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--drum-color) 22%, transparent), transparent),
-    rgba(255, 255, 255, 0.045);
   border-color: color-mix(in srgb, var(--drum-color) 55%, rgba(255, 255, 255, 0.08));
+}
+
+.step-button.is-active::before {
+  opacity: calc(0.12 + var(--step-velocity) * 0.44);
 }
 
 .step-button.is-active span {
   background: var(--drum-color);
   transform: scale(1.1);
+  opacity: calc(0.2 + var(--step-velocity) * 0.8);
+  filter: brightness(calc(0.6 + var(--step-velocity) * 0.8));
   box-shadow: 0 0 18px color-mix(in srgb, var(--drum-color) 70%, transparent);
 }
 
