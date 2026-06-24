@@ -25,3 +25,8 @@ export interface DrumDefinition {
 export type Patterns = Record<DrumId, StepVelocity[]>;
 
 export type DrumSettings = Record<DrumId, DrumParams>;
+
+export interface SelectedStep {
+  drumId: DrumId;
+  step: number;
+}

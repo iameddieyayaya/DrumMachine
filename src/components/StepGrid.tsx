@@ -6,20 +6,40 @@ import {
   isStepActive,
   STEPS_PER_BAR,
 } from "../data/drums";
-import type { DrumDefinition, LoopBars, Patterns } from "../types";
+import {
+  type PatternPreset,
+  type PatternPresetId,
+  type TrackOperationId,
+} from "../lib/sequencerState";
+import type {
+  DrumDefinition,
+  LoopBars,
+  Patterns,
+  SelectedStep,
+} from "../types";
 
 interface StepGridProps {
+  clipboardTrackAvailable: boolean;
   currentStep: number | null;
   drums: DrumDefinition[];
   loopBars: LoopBars;
+  onApplyPreset: (presetId: PatternPresetId) => void;
+  onApplyTrackOperation: (operation: TrackOperationId) => void;
   onClearPatterns: () => void;
+  onCopyTrack: () => void;
+  onPasteTrack: () => void;
   onRandomizePatterns: () => void;
+  onSelectStep: (selectedStep: SelectedStep | null) => void;
+  onSelectTrack: (drumId: DrumDefinition["id"]) => void;
   onSetStepVelocity: (
     drumId: DrumDefinition["id"],
     step: number,
     nextValue: number,
   ) => void;
   patterns: Patterns;
+  patternPresets: PatternPreset[];
+  selectedStep: SelectedStep | null;
+  selectedTrack: DrumDefinition["id"];
   onToggleStep: (drumId: DrumDefinition["id"], step: number) => void;
 }
 
@@ -37,18 +57,30 @@ interface DragState {
 }
 
 export function StepGrid({
+  clipboardTrackAvailable,
   currentStep,
   drums,
   loopBars,
+  onApplyPreset,
+  onApplyTrackOperation,
   onClearPatterns,
+  onCopyTrack,
+  onPasteTrack,
   onRandomizePatterns,
+  onSelectStep,
+  onSelectTrack,
   onSetStepVelocity,
   patterns,
+  patternPresets,
+  selectedStep,
+  selectedTrack,
   onToggleStep,
 }: StepGridProps) {
   const stepCount = loopBars * STEPS_PER_BAR;
   const steps = Array.from({ length: stepCount }, (_, index) => index);
   const dragStateRef = useRef<DragState | null>(null);
+  const selectedVelocity =
+    selectedStep ? patterns[selectedStep.drumId][selectedStep.step] : null;
 
   useEffect(() => {
     function applyVelocityDrag(dragState: DragState, pointerY: number) {
@@ -62,6 +94,10 @@ export function StepGrid({
         dragState.startStep,
         nextVelocity,
       );
+      onSelectStep({
+        drumId: dragState.startDrumId,
+        step: dragState.startStep,
+      });
     }
 
     function applyPaintAtPoint(
@@ -95,6 +131,7 @@ export function StepGrid({
 
       dragState.touchedSteps.add(stepKey);
       onSetStepVelocity(drumId, step, dragState.paintVelocity);
+      onSelectStep({ drumId, step });
     }
 
     function clearDragState(event?: globalThis.PointerEvent) {
@@ -167,7 +204,7 @@ export function StepGrid({
       window.removeEventListener("pointerup", clearDragState);
       window.removeEventListener("pointercancel", clearDragState);
     };
-  }, [onSetStepVelocity]);
+  }, [onSelectStep, onSetStepVelocity]);
 
   function handleStepPointerDown(
     event: PointerEvent<HTMLButtonElement>,
@@ -183,6 +220,8 @@ export function StepGrid({
 
     const startedActive = isStepActive(velocity);
     const baseVelocity = startedActive ? velocity : DEFAULT_STEP_VELOCITY;
+    onSelectStep({ drumId, step });
+    onSelectTrack(drumId);
     dragStateRef.current = {
       mode: "pending",
       pointerId: event.pointerId,
@@ -202,12 +241,58 @@ export function StepGrid({
     drumId: DrumDefinition["id"],
     step: number,
   ) {
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft" || event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      const adjacentStep = getAdjacentStep(drums, drumId, step, event.key, stepCount);
+      if (!adjacentStep) {
+        return;
+      }
+
+      onSelectStep(adjacentStep);
+      onSelectTrack(adjacentStep.drumId);
+      focusStepButton(adjacentStep);
+      return;
+    }
+
     if (event.key !== "Enter" && event.key !== " ") {
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        onSetStepVelocity(drumId, step, 0);
+        onSelectStep({ drumId, step });
+        onSelectTrack(drumId);
+        return;
+      }
+
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        onSetStepVelocity(
+          drumId,
+          step,
+          clampVelocity(patterns[drumId][step] + 0.08),
+        );
+        onSelectStep({ drumId, step });
+        onSelectTrack(drumId);
+        return;
+      }
+
+      if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        onSetStepVelocity(
+          drumId,
+          step,
+          clampVelocity(patterns[drumId][step] - 0.08),
+        );
+        onSelectStep({ drumId, step });
+        onSelectTrack(drumId);
+      }
+
       return;
     }
 
     event.preventDefault();
     onToggleStep(drumId, step);
+    onSelectStep({ drumId, step });
+    onSelectTrack(drumId);
   }
 
   return (
@@ -219,6 +304,16 @@ export function StepGrid({
         </div>
 
         <div className="sequencer__actions">
+          {patternPresets.map((preset) => (
+            <button
+              className="sequencer__action-button"
+              key={preset.id}
+              onClick={() => onApplyPreset(preset.id)}
+              type="button"
+            >
+              {preset.label}
+            </button>
+          ))}
           <button
             className="sequencer__action-button"
             onClick={onRandomizePatterns}
@@ -241,6 +336,115 @@ export function StepGrid({
           Click to toggle. Drag across to add or remove hits, or drag up and down
           on a step to shape its volume.
         </p>
+      </div>
+
+      <div className="sequencer__utility-row">
+        <div className="track-selector" aria-label="Track selector" role="tablist">
+          {drums.map((drum, index) => {
+            const isSelected = selectedTrack === drum.id;
+
+            return (
+              <button
+                aria-selected={isSelected}
+                className={`track-selector__chip ${isSelected ? "is-selected" : ""}`}
+                key={drum.id}
+                onClick={() => onSelectTrack(drum.id)}
+                role="tab"
+                style={{ "--drum-color": drum.color } as CSSProperties}
+                type="button"
+              >
+                <span>{index + 1}</span>
+                <strong>{drum.label}</strong>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="selected-step-card">
+          <span>Selected</span>
+          {selectedStep ? (
+            <strong>
+              {selectedStep.drumId} · step {selectedStep.step + 1} ·{" "}
+              {Math.round((selectedVelocity ?? 0) * 100)}%
+            </strong>
+          ) : (
+            <strong>No step selected</strong>
+          )}
+          <small>Arrow keys move. `+/-` changes velocity. `Delete` clears.</small>
+        </div>
+      </div>
+
+      <div className="sequencer__tool-row">
+        <button
+          className="sequencer__tool-button"
+          onClick={onCopyTrack}
+          type="button"
+        >
+          Copy Track
+        </button>
+        <button
+          className="sequencer__tool-button"
+          disabled={!clipboardTrackAvailable}
+          onClick={onPasteTrack}
+          type="button"
+        >
+          Paste Track
+        </button>
+        <button
+          className="sequencer__tool-button"
+          onClick={() => onApplyTrackOperation("fill2")}
+          type="button"
+        >
+          Fill 2
+        </button>
+        <button
+          className="sequencer__tool-button"
+          onClick={() => onApplyTrackOperation("fill4")}
+          type="button"
+        >
+          Fill 4
+        </button>
+        <button
+          className="sequencer__tool-button"
+          onClick={() => onApplyTrackOperation("fill8")}
+          type="button"
+        >
+          Fill 8
+        </button>
+        <button
+          className="sequencer__tool-button"
+          onClick={() => onApplyTrackOperation("humanize")}
+          type="button"
+        >
+          Humanize
+        </button>
+        <button
+          className="sequencer__tool-button"
+          onClick={() => onApplyTrackOperation("nudgeLeft")}
+          type="button"
+        >
+          Nudge Left
+        </button>
+        <button
+          className="sequencer__tool-button"
+          onClick={() => onApplyTrackOperation("nudgeRight")}
+          type="button"
+        >
+          Nudge Right
+        </button>
+        <button
+          className="sequencer__tool-button sequencer__tool-button--danger"
+          onClick={() => onApplyTrackOperation("clearTrack")}
+          type="button"
+        >
+          Clear Track
+        </button>
+      </div>
+
+      <div className="sequencer__velocity-scale" aria-hidden="true">
+        <span>Soft</span>
+        <div />
+        <span>Loud</span>
       </div>
 
       <div className="sequencer__scroll">
@@ -281,7 +485,11 @@ export function StepGrid({
                 } as CSSProperties
               }
             >
-              <div className="sequencer__track-label">
+              <div
+                className={`sequencer__track-label ${
+                  selectedTrack === drum.id ? "is-selected" : ""
+                }`}
+              >
                 <strong>{drum.label}</strong>
                 <span>{drum.description}</span>
               </div>
@@ -291,6 +499,8 @@ export function StepGrid({
                 const isActive = isStepActive(velocity);
                 const isCurrent = currentStep === step;
                 const isBarStart = step % STEPS_PER_BAR === 0;
+                const isSelected =
+                  selectedStep?.drumId === drum.id && selectedStep.step === step;
 
                 return (
                   <button
@@ -300,6 +510,7 @@ export function StepGrid({
                       "step-button",
                       isActive ? "is-active" : "",
                       isCurrent ? "is-current" : "",
+                      isSelected ? "is-selected" : "",
                       isBarStart ? "is-bar-start" : "",
                     ]
                       .filter(Boolean)
@@ -309,6 +520,10 @@ export function StepGrid({
                     data-step={step}
                     onClick={(event) => {
                       event.preventDefault();
+                    }}
+                    onFocus={() => {
+                      onSelectStep({ drumId: drum.id, step });
+                      onSelectTrack(drum.id);
                     }}
                     onKeyDown={(event) =>
                       handleStepKeyDown(event, drum.id, step)
@@ -333,4 +548,41 @@ export function StepGrid({
 
 function createStepKey(drumId: DrumDefinition["id"], step: number) {
   return `${drumId}:${step}`;
+}
+
+function getAdjacentStep(
+  drums: DrumDefinition[],
+  drumId: DrumDefinition["id"],
+  step: number,
+  key: "ArrowRight" | "ArrowLeft" | "ArrowUp" | "ArrowDown",
+  stepCount: number,
+): SelectedStep | null {
+  const rowIndex = drums.findIndex((drum) => drum.id === drumId);
+  if (rowIndex < 0) {
+    return null;
+  }
+
+  if (key === "ArrowRight") {
+    return step < stepCount - 1 ? { drumId, step: step + 1 } : null;
+  }
+
+  if (key === "ArrowLeft") {
+    return step > 0 ? { drumId, step: step - 1 } : null;
+  }
+
+  if (key === "ArrowUp") {
+    return rowIndex > 0 ? { drumId: drums[rowIndex - 1].id, step } : null;
+  }
+
+  return rowIndex < drums.length - 1
+    ? { drumId: drums[rowIndex + 1].id, step }
+    : null;
+}
+
+function focusStepButton(selectedStep: SelectedStep) {
+  const button = document.querySelector<HTMLButtonElement>(
+    `[data-drum-id="${selectedStep.drumId}"][data-step="${selectedStep.step}"]`,
+  );
+
+  button?.focus();
 }

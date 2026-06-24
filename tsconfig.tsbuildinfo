@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/components/instrumentcontrols.tsx","./src/components/stepgrid.tsx","./src/components/transport.tsx","./src/data/drums.ts","./src/hooks/usedrummachine.ts","./src/lib/audio.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/components/instrumentcontrols.tsx","./src/components/stepgrid.tsx","./src/components/transport.tsx","./src/data/drums.ts","./src/hooks/usedrummachine.ts","./src/lib/audio.ts","./src/lib/sequencerstate.ts"],"version":"5.9.3"}

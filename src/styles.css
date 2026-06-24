@@ -324,6 +324,148 @@ input[type="range"] {
   max-width: 52rem;
 }
 
+.sequencer__utility-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.9fr);
+  gap: 0.9rem;
+  margin-bottom: 0.9rem;
+}
+
+.track-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.track-selector__chip {
+  display: inline-grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.65rem 0.9rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.track-selector__chip span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-family: "Menlo", "SFMono-Regular", monospace;
+  font-size: 0.72rem;
+}
+
+.track-selector__chip strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.track-selector__chip.is-selected {
+  border-color: color-mix(in srgb, var(--drum-color) 55%, rgba(255, 255, 255, 0.08));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--drum-color) 16%, transparent), transparent),
+    rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--drum-color) 16%, transparent) inset;
+}
+
+.track-selector__chip.is-selected span {
+  background: var(--drum-color);
+  color: #0c0f13;
+}
+
+.selected-step-card {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.82rem 0.95rem;
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.selected-step-card span,
+.selected-step-card small {
+  color: var(--muted);
+}
+
+.selected-step-card span {
+  font-family: "Menlo", "SFMono-Regular", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.selected-step-card strong {
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.selected-step-card small {
+  font-size: 0.78rem;
+}
+
+.sequencer__tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 0.95rem;
+}
+
+.sequencer__tool-button {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  padding: 0.68rem 0.95rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.sequencer__tool-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(77, 200, 255, 0.38);
+  background: rgba(77, 200, 255, 0.08);
+}
+
+.sequencer__tool-button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.sequencer__tool-button--danger:hover:not(:disabled) {
+  border-color: rgba(247, 102, 58, 0.42);
+  background: rgba(247, 102, 58, 0.08);
+}
+
+.sequencer__velocity-scale {
+  display: grid;
+  grid-template-columns: auto minmax(8rem, 14rem) auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: var(--muted);
+  font-family: "Menlo", "SFMono-Regular", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sequencer__velocity-scale div {
+  height: 0.7rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.24), #ffffff);
+}
+
 .sequencer__actions {
   display: flex;
   flex-wrap: wrap;
@@ -406,6 +548,11 @@ input[type="range"] {
 .sequencer__track-label span {
   color: var(--muted);
   font-size: 0.75rem;
+}
+
+.sequencer__track-label.is-selected {
+  border-color: rgba(223, 255, 79, 0.3);
+  box-shadow: 0 0 0 1px rgba(223, 255, 79, 0.12) inset;
 }
 
 .sequencer__track-label--top {
@@ -523,6 +670,12 @@ input[type="range"] {
   inset: 0.26rem;
   border-radius: 0.76rem;
   border: 1px dashed rgba(247, 102, 58, 0.5);
+}
+
+.step-button.is-selected {
+  box-shadow:
+    inset 0 0 0 1px rgba(223, 255, 79, 0.3),
+    0 0 0 1px rgba(223, 255, 79, 0.18);
 }
 
 .transport {
@@ -656,6 +809,10 @@ input[type="range"] {
     grid-template-columns: 1fr;
   }
 
+  .sequencer__utility-row {
+    grid-template-columns: 1fr;
+  }
+
   .transport__controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -679,7 +836,8 @@ input[type="range"] {
   }
 
   .masthead__stats,
-  .transport__controls {
+  .transport__controls,
+  .sequencer__utility-row {
     grid-template-columns: 1fr;
   }
 

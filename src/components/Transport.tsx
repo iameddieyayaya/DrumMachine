@@ -24,13 +24,6 @@ export function Transport({
 }: TransportProps) {
   return (
     <section className="transport panel">
-      <div className="transport__dock-label">
-        <p className="eyebrow">Transport</p>
-        <p className="transport__summary">
-          Sticky playback controls with adjustable loop length.
-        </p>
-      </div>
-
       <div className="transport__controls">
         <button
           aria-label={isPlaying ? "Stop playback" : "Start playback"}

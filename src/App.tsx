@@ -1,29 +1,28 @@
-import { startTransition, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { InstrumentControls } from "./components/InstrumentControls";
 import { StepGrid } from "./components/StepGrid";
 import { Transport } from "./components/Transport";
-import {
-  DEFAULT_BPM,
-  DRUMS,
-  clampUnit,
-  clampLoopBars,
-  clampVelocity,
-  createEmptyPatterns,
-  createInitialPatterns,
-  createRandomPatterns,
-  createInitialSettings,
-  DEFAULT_STEP_VELOCITY,
-  resizePatterns,
-} from "./data/drums";
+import { DRUMS } from "./data/drums";
 import { useDrumMachine } from "./hooks/useDrumMachine";
-import type { DrumId, DrumSettings, LoopBars, Patterns } from "./types";
+import {
+  PATTERN_PRESETS,
+  loadSequencerState,
+  saveSequencerState,
+  sequencerReducer,
+} from "./lib/sequencerState";
 
 export default function App() {
-  const [bpm, setBpm] = useState(DEFAULT_BPM);
-  const [loopBars, setLoopBars] = useState<LoopBars>(8);
-  const [swing, setSwing] = useState(0);
-  const [patterns, setPatterns] = useState<Patterns>(() => createInitialPatterns(8));
-  const [settings, setSettings] = useState<DrumSettings>(createInitialSettings);
+  const [state, dispatch] = useReducer(sequencerReducer, undefined, loadSequencerState);
+  const {
+    bpm,
+    clipboardTrack,
+    loopBars,
+    patterns,
+    selectedStep,
+    selectedTrack,
+    settings,
+    swing,
+  } = state;
   const activeSteps = Object.values(patterns).reduce(
     (count, track) => count + track.filter((velocity) => velocity > 0).length,
     0,
@@ -37,55 +36,53 @@ export default function App() {
     swing,
   });
 
-  function handleLoopBarsChange(nextLoopBars: LoopBars) {
-    const safeLoopBars = clampLoopBars(nextLoopBars);
-    setLoopBars(safeLoopBars);
-    setPatterns((previous) => resizePatterns(previous, safeLoopBars));
-  }
+  useEffect(() => {
+    saveSequencerState(state);
+  }, [state]);
 
-  function handleSetStepVelocity(
-    drumId: DrumId,
-    step: number,
-    nextVelocity: number,
-  ) {
-    setPatterns((previous) => ({
-      ...previous,
-      [drumId]: previous[drumId].map((value, index) =>
-        index === step ? clampVelocity(nextVelocity) : value,
-      ),
-    }));
-  }
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
 
-  function handleToggleStep(drumId: DrumId, step: number) {
-    setPatterns((previous) => ({
-      ...previous,
-      [drumId]: previous[drumId].map((value, index) =>
-        index === step ? (value > 0 ? 0 : DEFAULT_STEP_VELOCITY) : value,
-      ),
-    }));
-  }
+      if (event.code === "Space") {
+        event.preventDefault();
+        void togglePlayback();
+        return;
+      }
 
-  function handleClearPatterns() {
-    startTransition(() => {
-      setPatterns(createEmptyPatterns(loopBars));
-    });
-  }
+      if (event.key >= "1" && event.key <= "4") {
+        const index = Number(event.key) - 1;
+        const drum = DRUMS[index];
+        if (drum) {
+          dispatch({ type: "selectTrack", drumId: drum.id });
+        }
+        return;
+      }
 
-  function handleRandomizePatterns() {
-    startTransition(() => {
-      setPatterns(createRandomPatterns(loopBars));
-    });
-  }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        dispatch({ type: "copyTrack" });
+        return;
+      }
 
-  function handleParamChange(drumId: DrumId, key: string, value: number) {
-    setSettings((previous) => ({
-      ...previous,
-      [drumId]: {
-        ...previous[drumId],
-        [key]: clampUnit(value),
-      },
-    }));
-  }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        dispatch({ type: "pasteTrack" });
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [togglePlayback]);
 
   return (
     <main className="app-shell">
@@ -126,28 +123,66 @@ export default function App() {
 
       <InstrumentControls
         drums={DRUMS}
-        onParamChange={handleParamChange}
+        onParamChange={(drumId, key, value) => {
+          dispatch({ type: "setParam", drumId, key, value });
+        }}
         settings={settings}
       />
 
       <StepGrid
+        clipboardTrackAvailable={Boolean(clipboardTrack)}
         currentStep={currentStep}
         drums={DRUMS}
         loopBars={loopBars}
-        onClearPatterns={handleClearPatterns}
-        onRandomizePatterns={handleRandomizePatterns}
-        onSetStepVelocity={handleSetStepVelocity}
-        onToggleStep={handleToggleStep}
+        onApplyPreset={(presetId) => {
+          dispatch({ type: "applyPreset", presetId });
+        }}
+        onApplyTrackOperation={(operation) => {
+          dispatch({ type: "applyTrackOperation", operation });
+        }}
+        onClearPatterns={() => {
+          dispatch({ type: "clearPatterns" });
+        }}
+        onCopyTrack={() => {
+          dispatch({ type: "copyTrack" });
+        }}
+        onPasteTrack={() => {
+          dispatch({ type: "pasteTrack" });
+        }}
+        onRandomizePatterns={() => {
+          dispatch({ type: "randomizePatterns" });
+        }}
+        onSelectStep={(nextSelectedStep) => {
+          dispatch({ type: "selectStep", selectedStep: nextSelectedStep });
+        }}
+        onSelectTrack={(drumId) => {
+          dispatch({ type: "selectTrack", drumId });
+        }}
+        onSetStepVelocity={(drumId, step, velocity) => {
+          dispatch({ type: "setStepVelocity", drumId, step, velocity });
+        }}
+        onToggleStep={(drumId, step) => {
+          dispatch({ type: "toggleStep", drumId, step });
+        }}
+        patternPresets={PATTERN_PRESETS}
         patterns={patterns}
+        selectedStep={selectedStep}
+        selectedTrack={selectedTrack}
       />
 
       <Transport
         bpm={bpm}
         isPlaying={isPlaying}
         loopBars={loopBars}
-        onBpmChange={setBpm}
-        onLoopBarsChange={handleLoopBarsChange}
-        onSwingChange={setSwing}
+        onBpmChange={(nextBpm) => {
+          dispatch({ type: "setBpm", bpm: nextBpm });
+        }}
+        onLoopBarsChange={(nextLoopBars) => {
+          dispatch({ type: "setLoopBars", loopBars: nextLoopBars });
+        }}
+        onSwingChange={(nextSwing) => {
+          dispatch({ type: "setSwing", swing: nextSwing });
+        }}
         onTogglePlayback={() => {
           void togglePlayback();
         }}
