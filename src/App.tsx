@@ -24,6 +24,10 @@ export default function App() {
   const [swing, setSwing] = useState(0);
   const [patterns, setPatterns] = useState<Patterns>(() => createInitialPatterns(8));
   const [settings, setSettings] = useState<DrumSettings>(createInitialSettings);
+  const activeSteps = Object.values(patterns).reduce(
+    (count, track) => count + track.filter((velocity) => velocity > 0).length,
+    0,
+  );
 
   const { currentStep, isPlaying, togglePlayback } = useDrumMachine({
     bpm,
@@ -87,6 +91,38 @@ export default function App() {
     <main className="app-shell">
       <div className="background-glow background-glow--left" />
       <div className="background-glow background-glow--right" />
+      <div className="background-grid" />
+
+      <section className="masthead panel">
+        <div className="masthead__copy">
+          <p className="eyebrow">Seq Drum Machine</p>
+          <h1>Pick your rhythm!</h1>
+          <p className="masthead__summary">
+            A fast browser sequencer with synthesized drums, velocity shading,
+            drag editing, swing, and a bottom transport that feels closer to a
+            modern piece of hardware than a default web app.
+          </p>
+        </div>
+
+        <div className="masthead__stats">
+          <div className="masthead__stat">
+            <span>Loop</span>
+            <strong>{loopBars} Bars</strong>
+          </div>
+          <div className="masthead__stat">
+            <span>Active Hits</span>
+            <strong>{activeSteps}</strong>
+          </div>
+          <div className="masthead__stat">
+            <span>Swing</span>
+            <strong>{swing}%</strong>
+          </div>
+          <div className="masthead__stat">
+            <span>BPM</span>
+            <strong>{bpm}</strong>
+          </div>
+        </div>
+      </section>
 
       <InstrumentControls
         drums={DRUMS}

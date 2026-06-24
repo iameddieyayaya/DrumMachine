@@ -71,7 +71,7 @@ export function StepGrid({
     ) {
       const button = document
         .elementFromPoint(clientX, clientY)
-        ?.closest<HTMLButtonElement>("[data-step-button]");
+        ?.closest<HTMLButtonElement>("[data-step]");
 
       if (!button) {
         return;
@@ -186,7 +186,7 @@ export function StepGrid({
     dragStateRef.current = {
       mode: "pending",
       pointerId: event.pointerId,
-      paintVelocity: baseVelocity,
+      paintVelocity: startedActive ? 0 : baseVelocity,
       startDrumId: drumId,
       startStep: step,
       startVelocity: baseVelocity,
@@ -238,8 +238,8 @@ export function StepGrid({
 
       <div className="sequencer__legend">
         <p>
-          Click to toggle. Drag across to paint matching velocity, or drag up and
-          down on a step to shape its volume.
+          Click to toggle. Drag across to add or remove hits, or drag up and down
+          on a step to shape its volume.
         </p>
       </div>
 
