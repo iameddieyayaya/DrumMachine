@@ -21,11 +21,7 @@
 }
 
 html {
-  background:
-    radial-gradient(circle at 18% 12%, rgba(247, 102, 58, 0.14), transparent 24%),
-    radial-gradient(circle at 82% 18%, rgba(77, 200, 255, 0.12), transparent 20%),
-    radial-gradient(circle at 52% 82%, rgba(223, 255, 79, 0.09), transparent 24%),
-    linear-gradient(145deg, #07080b 0%, #0e1117 48%, #161a23 100%);
+  background: #0b0d11;
 }
 
 body {
@@ -33,14 +29,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   color: var(--text);
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.015) 0,
-      rgba(255, 255, 255, 0.015) 1px,
-      transparent 1px,
-      transparent 96px
-    );
+  background: #0b0d11;
 }
 
 button,
@@ -87,22 +76,12 @@ button {
 }
 
 .background-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 9rem 9rem;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 88%);
-  opacity: 0.18;
+  display: none;
 }
 
 .panel {
   position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
-    var(--panel);
+  background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 1.55rem;
   box-shadow: var(--shadow);
@@ -130,9 +109,7 @@ button {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(125deg, rgba(247, 102, 58, 0.12), transparent 38%),
-    linear-gradient(330deg, rgba(223, 255, 79, 0.08), transparent 44%);
+  background: rgba(255, 255, 255, 0.02);
   pointer-events: none;
 }
 
@@ -174,9 +151,7 @@ button {
 .masthead__stat {
   padding: 1rem 1.05rem;
   border-radius: 1.15rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -219,17 +194,11 @@ button {
 }
 
 .instrument-board {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, rgba(223, 255, 79, 0.04), transparent 42%),
-    var(--panel);
+  background: var(--panel);
 }
 
 .sequencer {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, rgba(77, 200, 255, 0.05), transparent 38%),
-    var(--panel);
+  background: var(--panel);
 }
 
 .instrument-grid {
@@ -242,9 +211,7 @@ button {
   padding: 1rem;
   border-radius: 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--drum-color) 20%, transparent), transparent 42%),
-    rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .instrument-card__header {
@@ -315,13 +282,28 @@ input[type="range"] {
 }
 
 .sequencer__legend {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
   margin-bottom: 1rem;
-  color: var(--muted);
 }
 
-.sequencer__legend p {
-  margin: 0;
-  max-width: 52rem;
+.sequencer__legend-card {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.9rem 0.95rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sequencer__legend-card strong {
+  font-size: 0.86rem;
+}
+
+.sequencer__legend-card span {
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .sequencer__utility-row {
@@ -369,9 +351,7 @@ input[type="range"] {
 
 .track-selector__chip.is-selected {
   border-color: color-mix(in srgb, var(--drum-color) 55%, rgba(255, 255, 255, 0.08));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--drum-color) 16%, transparent), transparent),
-    rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--drum-color) 16%, rgba(255, 255, 255, 0.05));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--drum-color) 16%, transparent) inset;
 }
 
@@ -385,9 +365,7 @@ input[type="range"] {
   gap: 0.22rem;
   padding: 0.82rem 0.95rem;
   border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -410,6 +388,7 @@ input[type="range"] {
 
 .selected-step-card small {
   font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .sequencer__tool-row {
@@ -463,7 +442,7 @@ input[type="range"] {
 .sequencer__velocity-scale div {
   height: 0.7rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.24), #ffffff);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .sequencer__actions {
@@ -477,9 +456,7 @@ input[type="range"] {
   border-radius: 999px;
   padding: 0.82rem 1.08rem;
   color: var(--text);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.035);
+  background: rgba(255, 255, 255, 0.035);
   transition:
     transform 140ms ease,
     border-color 140ms ease,
@@ -534,9 +511,7 @@ input[type="range"] {
   min-height: 3rem;
   padding: 0.82rem 0.9rem;
   border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
-    rgba(8, 10, 15, 0.96);
+  background: rgba(8, 10, 15, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -595,9 +570,7 @@ input[type="range"] {
   touch-action: none;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.018);
+  background: rgba(255, 255, 255, 0.018);
   transition:
     transform 140ms ease,
     border-color 140ms ease,
@@ -617,8 +590,7 @@ input[type="range"] {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--drum-color) 76%, transparent), transparent 82%);
+  background: color-mix(in srgb, var(--drum-color) 38%, transparent);
   opacity: 0;
   transition: opacity 140ms ease;
 }
@@ -688,10 +660,7 @@ input[type="range"] {
   gap: 1rem;
   margin-top: 1.4rem;
   padding: 1rem 1.08rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
-    linear-gradient(90deg, rgba(247, 102, 58, 0.08), transparent 26%),
-    rgba(8, 10, 15, 0.94);
+  background: rgba(8, 10, 15, 0.94);
   border-radius: 1.4rem;
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -705,6 +674,28 @@ input[type="range"] {
 .transport__dock-label {
   display: grid;
   gap: 0.35rem;
+}
+
+.transport__dock-title {
+  font-size: 1.18rem;
+  letter-spacing: -0.02em;
+}
+
+.transport__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.transport__meta span {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-family: "Menlo", "SFMono-Regular", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .transport__controls {
@@ -722,7 +713,7 @@ input[type="range"] {
   border: 0;
   border-radius: 999px;
   padding: 1rem 1.4rem;
-  background: linear-gradient(120deg, #dfff4f 0%, #f7ff9a 100%);
+  background: #dfff4f;
   color: #0b0d10;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -739,7 +730,7 @@ input[type="range"] {
 }
 
 .transport__play.is-playing {
-  background: linear-gradient(120deg, #f7663a 0%, #ffb36f 100%);
+  background: #f7663a;
   box-shadow: 0 16px 36px rgba(247, 102, 58, 0.24);
 }
 
@@ -770,14 +761,13 @@ input[type="range"] {
   min-width: 0;
   padding: 0.88rem 1rem;
   border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .transport__field span,
-.transport__field strong {
+.transport__field strong,
+.transport__field small {
   font-size: 0.95rem;
 }
 
@@ -794,6 +784,35 @@ input[type="range"] {
   letter-spacing: -0.03em;
 }
 
+.transport__field small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.4rem;
+  padding-bottom: 0.5rem;
+}
+
+.app-footer__link {
+  color: var(--muted);
+  text-decoration: none;
+  font-family: "Menlo", "SFMono-Regular", monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition:
+    color 140ms ease,
+    opacity 140ms ease;
+}
+
+.app-footer__link:hover {
+  color: var(--accent-2);
+}
+
 @media (max-width: 1080px) {
   .masthead {
     grid-template-columns: 1fr;
@@ -807,6 +826,10 @@ input[type="range"] {
 @media (max-width: 960px) {
   .transport {
     grid-template-columns: 1fr;
+  }
+
+  .sequencer__legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sequencer__utility-row {
@@ -837,7 +860,8 @@ input[type="range"] {
 
   .masthead__stats,
   .transport__controls,
-  .sequencer__utility-row {
+  .sequencer__utility-row,
+  .sequencer__legend {
     grid-template-columns: 1fr;
   }
 

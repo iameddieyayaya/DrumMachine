@@ -19,6 +19,7 @@ import type {
 } from "../types";
 
 interface StepGridProps {
+  activeHits: number;
   clipboardTrackAvailable: boolean;
   currentStep: number | null;
   drums: DrumDefinition[];
@@ -40,6 +41,9 @@ interface StepGridProps {
   patternPresets: PatternPreset[];
   selectedStep: SelectedStep | null;
   selectedTrack: DrumDefinition["id"];
+  selectedTrackLabel: string;
+  selectedTrackAverageVelocity: number;
+  selectedTrackHits: number;
   onToggleStep: (drumId: DrumDefinition["id"], step: number) => void;
 }
 
@@ -57,6 +61,7 @@ interface DragState {
 }
 
 export function StepGrid({
+  activeHits,
   clipboardTrackAvailable,
   currentStep,
   drums,
@@ -74,6 +79,9 @@ export function StepGrid({
   patternPresets,
   selectedStep,
   selectedTrack,
+  selectedTrackLabel,
+  selectedTrackAverageVelocity,
+  selectedTrackHits,
   onToggleStep,
 }: StepGridProps) {
   const stepCount = loopBars * STEPS_PER_BAR;
@@ -332,10 +340,22 @@ export function StepGrid({
       </div>
 
       <div className="sequencer__legend">
-        <p>
-          Click to toggle. Drag across to add or remove hits, or drag up and down
-          on a step to shape its volume.
-        </p>
+        <div className="sequencer__legend-card">
+          <strong>Click</strong>
+          <span>Toggle any step on or off.</span>
+        </div>
+        <div className="sequencer__legend-card">
+          <strong>Drag Sideways</strong>
+          <span>Paint or erase several hits in one pass.</span>
+        </div>
+        <div className="sequencer__legend-card">
+          <strong>Drag Up / Down</strong>
+          <span>Shape velocity. Brighter cells hit louder.</span>
+        </div>
+        <div className="sequencer__legend-card">
+          <strong>Shortcuts</strong>
+          <span>`Space` plays, `1-4` selects tracks, `+/-` nudges volume.</span>
+        </div>
       </div>
 
       <div className="sequencer__utility-row">
@@ -361,16 +381,22 @@ export function StepGrid({
         </div>
 
         <div className="selected-step-card">
-          <span>Selected</span>
+          <span>Editing</span>
           {selectedStep ? (
             <strong>
               {selectedStep.drumId} · step {selectedStep.step + 1} ·{" "}
               {Math.round((selectedVelocity ?? 0) * 100)}%
             </strong>
           ) : (
-            <strong>No step selected</strong>
+            <strong>
+              {selectedTrackLabel} · {selectedTrackHits} hits ·{" "}
+              {selectedTrackAverageVelocity}% avg velocity
+            </strong>
           )}
-          <small>Arrow keys move. `+/-` changes velocity. `Delete` clears.</small>
+          <small>
+            {activeHits} active hits across {loopBars} bars. Select a step for
+            precise velocity edits.
+          </small>
         </div>
       </div>
 
@@ -532,6 +558,9 @@ export function StepGrid({
                       handleStepPointerDown(event, drum.id, step, velocity)
                     }
                     style={{ "--step-velocity": velocity } as CSSProperties}
+                    title={`${drum.label} · step ${step + 1} · ${Math.round(
+                      velocity * 100,
+                    )}% velocity`}
                     type="button"
                   >
                     <span />

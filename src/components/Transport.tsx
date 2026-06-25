@@ -3,27 +3,54 @@ import type { LoopBars } from "../types";
 
 interface TransportProps {
   bpm: number;
+  currentBar: number | null;
+  currentPulse: number | null;
   isPlaying: boolean;
   loopBars: LoopBars;
   onBpmChange: (value: number) => void;
   onLoopBarsChange: (value: LoopBars) => void;
   onSwingChange: (value: number) => void;
   onTogglePlayback: () => void;
+  selectedTrackLabel: string;
+  stepCount: number;
   swing: number;
 }
 
 export function Transport({
   bpm,
+  currentBar,
+  currentPulse,
   isPlaying,
   loopBars,
   onBpmChange,
   onLoopBarsChange,
   onSwingChange,
   onTogglePlayback,
+  selectedTrackLabel,
+  stepCount,
   swing,
 }: TransportProps) {
   return (
     <section className="transport panel">
+      <div className="transport__dock-label">
+        <p className="eyebrow">Performance Dock</p>
+        <strong className="transport__dock-title">
+          {isPlaying
+            ? `Running bar ${currentBar ?? 1}, pulse ${currentPulse ?? 1}`
+            : "Ready to play"}
+        </strong>
+        <p className="transport__summary">
+          {isPlaying
+            ? `Looping ${loopBars} bars across ${stepCount} steps.`
+            : "Press play or hit space to start the loop."}
+        </p>
+        <div className="transport__meta">
+          <span>{selectedTrackLabel} selected</span>
+          <span>{loopBars} bars</span>
+          <span>{stepCount} steps</span>
+        </div>
+      </div>
+
       <div className="transport__controls">
         <button
           aria-label={isPlaying ? "Stop playback" : "Start playback"}
@@ -65,6 +92,7 @@ export function Transport({
             type="range"
             value={loopBars}
           />
+          <small>1 to 16 bars</small>
         </label>
 
         <label className="transport__field">
@@ -79,6 +107,7 @@ export function Transport({
             type="range"
             value={swing}
           />
+          <small>Pushes the off-beat later</small>
         </label>
       </div>
     </section>

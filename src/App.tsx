@@ -2,7 +2,7 @@ import { useEffect, useReducer } from "react";
 import { InstrumentControls } from "./components/InstrumentControls";
 import { StepGrid } from "./components/StepGrid";
 import { Transport } from "./components/Transport";
-import { DRUMS } from "./data/drums";
+import { DRUMS, STEPS_PER_BAR, totalSteps } from "./data/drums";
 import { useDrumMachine } from "./hooks/useDrumMachine";
 import {
   PATTERN_PRESETS,
@@ -27,6 +27,24 @@ export default function App() {
     (count, track) => count + track.filter((velocity) => velocity > 0).length,
     0,
   );
+  const stepCount = totalSteps(loopBars);
+  const selectedTrackDefinition =
+    DRUMS.find((drum) => drum.id === selectedTrack) ?? DRUMS[0];
+  const selectedTrackPattern = patterns[selectedTrack];
+  const selectedTrackHits = selectedTrackPattern.filter(
+    (velocity) => velocity > 0,
+  ).length;
+  const selectedTrackAverageVelocity =
+    selectedTrackHits > 0
+      ? Math.round(
+          (selectedTrackPattern.reduce(
+            (sum, velocity) => sum + (velocity > 0 ? velocity : 0),
+            0,
+          ) /
+            selectedTrackHits) *
+            100,
+        )
+      : 0;
 
   const { currentStep, isPlaying, togglePlayback } = useDrumMachine({
     bpm,
@@ -35,6 +53,10 @@ export default function App() {
     settings,
     swing,
   });
+  const currentBar =
+    currentStep === null ? null : Math.floor(currentStep / STEPS_PER_BAR) + 1;
+  const currentPulse =
+    currentStep === null ? null : (currentStep % STEPS_PER_BAR) + 1;
 
   useEffect(() => {
     saveSequencerState(state);
@@ -130,6 +152,7 @@ export default function App() {
       />
 
       <StepGrid
+        activeHits={activeSteps}
         clipboardTrackAvailable={Boolean(clipboardTrack)}
         currentStep={currentStep}
         drums={DRUMS}
@@ -168,10 +191,15 @@ export default function App() {
         patterns={patterns}
         selectedStep={selectedStep}
         selectedTrack={selectedTrack}
+        selectedTrackLabel={selectedTrackDefinition.label}
+        selectedTrackAverageVelocity={selectedTrackAverageVelocity}
+        selectedTrackHits={selectedTrackHits}
       />
 
       <Transport
         bpm={bpm}
+        currentBar={currentBar}
+        currentPulse={currentPulse}
         isPlaying={isPlaying}
         loopBars={loopBars}
         onBpmChange={(nextBpm) => {
@@ -186,8 +214,21 @@ export default function App() {
         onTogglePlayback={() => {
           void togglePlayback();
         }}
+        selectedTrackLabel={selectedTrackDefinition.label}
+        stepCount={stepCount}
         swing={swing}
       />
+
+      <footer className="app-footer">
+        <a
+          className="app-footer__link"
+          href="https://github.com/iameddieyayaya/DrumMachine"
+          rel="noreferrer"
+          target="_blank"
+        >
+          iameddieyayaya/DrumMachine
+        </a>
+      </footer>
     </main>
   );
 }
